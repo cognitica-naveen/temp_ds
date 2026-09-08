@@ -1,0 +1,8 @@
+auto.crt 
+auto.key 
+ffprobe-20260908-121604.log 
+LICENSE 
+mediamtx 
+mediamtx_v1.21.0_linux_amd64.tar.gz
+venv/
+__pycache__/
