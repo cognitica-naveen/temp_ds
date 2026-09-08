@@ -1,0 +1,51 @@
+# Camera configuration
+# Add or remove rtsp camera URLs here. Everything else (DeepStream
+# pipelines, MediaMTX paths, the web grid) adapts automatically on restart.
+#
+#   1 camera listed  -> 1 per-camera stream (cam-0)
+#   12 cameras listed -> 12 per-camera streams (cam-0 .. cam-11)
+#
+# After editing this file, restart the stack:
+#   ./start_stack.sh
+
+cameras:
+  - "rtsp://admin:Cogn%21%402023@192.168.1.112:554/video/live?channel=1&subtype=0"
+  - "rtsp://admin:Cogn%21%402023@192.168.1.115:554/video/live?channel=1&subtype=0"
+  # - "rtsp://admin:Cogn%21%402023@192.168.1.102:554/video/live?channel=1&subtype=0"
+  # - "rtsp://admin:Cogn%21%402023@192.168.1.104:554/video/live?channel=1&subtype=0"
+  # - "rtsp://admin:Cogn%21%402023@192.168.1.118:554/video/live?channel=1&subtype=0"
+  # - "rtsp://admin:Cogni_2018@192.168.1.130:554/video/live?channel=1&subtype=0"
+  # - "rtsp://admin:Cogn%21%402023@192.168.1.114:554/video/live?channel=1&subtype=0"
+  # - "rtsp://admin:Cogn%21%402023@192.168.1.115:554/video/live?channel=1&subtype=0"
+# Detection snapshot rules — one entry per camera (or "all").
+#   camera:     cam-N name from the list above, or "all" for every camera
+#   classes:    class names from the detector's labels.txt
+#               (current detector: car, bicycle, person, road_sign)
+#               use ["*"] to match any class
+#   threshold:  minimum detection confidence (0.0 - 1.0)
+#   save_image: true  -> save image to data/<class>/
+#               false -> count only, don't save
+#   save_mode:  "frame" -> FULL frame with bounding boxes drawn (default)
+#               "crop"  -> cropped object region only
+#
+# A folder is created per class automatically, e.g. data/person/, data/car/
+
+detections:
+  - camera: cam-0
+    classes: [person]
+    threshold: 0.5
+    save_image: true
+    save_mode: frame
+
+  - camera: cam-1
+    classes: [person]
+    threshold: 0.5
+    save_image: true
+    save_mode: crop
+
+  # All cameras, any class, no images (counting only)
+  # - camera: all
+  #   classes: ["*"]
+  #   threshold: 0.5
+  #   save_image: false
+  #   save_mode: frame

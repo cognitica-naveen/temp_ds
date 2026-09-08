@@ -6,3 +6,4 @@ mediamtx
 mediamtx_v1.21.0_linux_amd64.tar.gz
 venv/
 __pycache__/
+data/

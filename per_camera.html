@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DeepStream Live - Per Camera</title>
+  <style>
+    body { margin: 0; background: #111; color: #eee; font-family: sans-serif; }
+    h2 { text-align: center; margin: 12px 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 8px;
+      padding: 8px;
+    }
+    .cell { position: relative; background: #000; }
+    video { width: 100%; aspect-ratio: 16/9; object-fit: contain; display: block; }
+    .label {
+      position: absolute; top: 6px; left: 6px;
+      background: rgba(0,0,0,.6); padding: 2px 8px; border-radius: 4px;
+      font-size: 13px;
+    }
+    .cell.connecting::after {
+      content: "connecting...";
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #888; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Live Inference &mdash; Per Camera</h2>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    // Auto-detect host so the page works from any machine on the LAN.
+    const HOST = window.location.hostname || 'localhost';
+
+    // The camera list is NOT hardcoded: it is fetched from /cameras.json,
+    // which the web server generates from camera.config.yaml.
+    async function loadCameras() {
+      const resp = await fetch('/cameras.json');
+      if (!resp.ok) throw new Error('cameras.json unavailable');
+      const data = await resp.json();
+      return data.cameras;  // e.g. ["cam-0", "cam-1", ...]
+    }
+
+    // WHEP playback: POST an SDP offer, receive an SDP answer
+    async function whepConnect(pc, whepUrl) {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const resp = await fetch(whepUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sdp' },
+        body: pc.localDescription.sdp,
+      });
+      if (!resp.ok) throw new Error(`WHEP failed: ${resp.status}`);
+      await pc.setRemoteDescription({ type: 'answer', sdp: await resp.text() });
+    }
+
+    function attachStream(name, cell) {
+      const video = cell.querySelector('video');
+      const pc = new RTCPeerConnection();
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+      pc.ontrack = (e) => {
+        video.srcObject = e.streams[0];
+        cell.classList.remove('connecting');
+      };
+      pc.onconnectionstatechange = () => {
+        console.log(name, 'WebRTC:', pc.connectionState);
+        // Reconnect if the connection drops (e.g. pipeline restart,
+        // or camera count changed and this tile needs to re-pull)
+        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          pc.close();
+          setTimeout(() => attachStream(name, cell), 3000);
+        }
+      };
+      cell.classList.add('connecting');
+      whepConnect(pc, `http://${HOST}:8889/${name}/whep`).catch(
+        err => console.error(name, err)
+      );
+    }
+
+    function render(cameras) {
+      const grid = document.getElementById('grid');
+      // Re-render only if the camera set changed (supports live config changes)
+      const current = [...grid.children].map(c => c.dataset.name).join(',');
+      if (current === cameras.join(',')) return;
+
+      grid.innerHTML = '';
+      for (const name of cameras) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.name = name;
+        cell.innerHTML =
+          `<span class="label">${name}</span><video id="v-${name}" muted autoplay playsinline></video>`;
+        grid.appendChild(cell);
+        attachStream(name, cell);
+      }
+    }
+
+    (async function main() {
+      // Initial load + poll every 10s so adding/removing cameras in
+      // camera.config.yaml updates the page without a manual refresh.
+      const cameras = await loadCameras();
+      render(cameras);
+      setInterval(async () => {
+        try { render(await loadCameras()); } catch (e) { /* server restarting */ }
+      }, 10000);
+    })();
+  </script>
+</body>
+</html>

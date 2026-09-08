@@ -880,10 +880,12 @@ paths:
   ds-test:
     source: rtsp://localhost:8556/ds-test
     sourceOnDemand: yes
-  # example:
-  # my_camera:
-  #   source: rtsp://my_camera
 
-  # Settings under path "all_others" are applied to all paths that
-  # do not match another entry.
+  cam-0:
+    source: rtsp://localhost:8556/cam-0
+    sourceOnDemand: yes
+  cam-1:
+    source: rtsp://localhost:8557/cam-1
+    sourceOnDemand: yes
+
   all_others:

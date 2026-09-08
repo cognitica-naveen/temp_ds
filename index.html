@@ -9,14 +9,12 @@
   </style>
 </head>
 <body>
-  <h2>Live Inference View (8 cameras)</h2>
+  <h2>Live Inference View (Tiled)</h2>
   <video id="cam" muted autoplay playsinline controls></video>
 
   <script>
     // Auto-detect host so the page works from any machine on the LAN.
-    // When opened via file:// the hostname is empty, so fall back to localhost.
     const HOST = window.location.hostname || 'localhost';
-    const WHEP_URL = `http://${HOST}:8889/ds-test/whep`;
 
     async function play() {
       const video = document.getElementById('cam');
@@ -29,15 +27,14 @@
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const resp = await fetch(WHEP_URL, {
+      const resp = await fetch(`http://${HOST}:8889/ds-test/whep`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/sdp' },
         body: pc.localDescription.sdp,
       });
       if (!resp.ok) { console.error('WHEP failed:', resp.status); return; }
 
-      const answer = await resp.text();
-      await pc.setRemoteDescription({ type: 'answer', sdp: answer });
+      await pc.setRemoteDescription({ type: 'answer', sdp: await resp.text() });
     }
 
     play();
